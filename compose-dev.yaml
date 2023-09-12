@@ -1,0 +1,78 @@
+---
+x-database-env: &dbenv
+  MYSQL_ROOT_PASSWORD: supersecret
+
+services:
+  db:
+    image: mariadb:11
+    command: --default-authentication-plugin=mysql_native_password
+    env_file: .env
+    environment:
+      <<: *dbenv
+    expose:
+      - "3306"
+    ports:
+      - "33060:3306"
+
+  init-db:
+    image: mariadb:11
+    command: /init-database.sh
+    env_file: .env
+    environment:
+      <<: *dbenv
+    volumes:
+      - ./docker/init-database.sh:/init-database.sh
+    depends_on:
+      db:
+        condition: service_started
+
+  setup-app:
+    build:
+      context: ./docker/php/
+      dockerfile: Base.Dockerfile
+    command: /install.sh
+    env_file: .env
+    volumes:
+      - ./:/var/www/html
+      - ./docker/php/conf.d/override.ini:/usr/local/etc/php/conf.d/xx-override.ini
+      - ./docker/init-app.sh:/install.sh
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
+
+  fpm:
+    build:
+      context: ./docker/php/
+      dockerfile: FPM.Dockerfile
+    env_file: .env
+    expose:
+      - "9000"
+    volumes:
+      - ./docker/php/conf.d/fpm.conf:/usr/local/etc/php-fpm.d/xx-fpm.conf
+      - ./docker/php/conf.d/override.ini:/usr/local/etc/php/conf.d/xx-override.ini
+      - ./docker/php/conf.d/xdebug.ini:/usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+      - ./docker/devrc.sh:/etc/profile.d/99dev.sh
+      - ./:/var/www/html
+    depends_on:
+      setup-app:
+        condition: service_completed_successfully
+
+  nginx:
+    image: nginxinc/nginx-unprivileged:alpine
+    env_file: .env
+    environment:
+      FCGI_HOST: "fpm"
+      FCGI_PORT: "9000"
+      NGINX_PORT: "8080"
+      NGINX_ROOT: "/var/www/html/public"
+    volumes:
+      - ./docker/nginx/templates/default.conf:/etc/nginx/templates/default.conf.template
+      - ./:/var/www/html
+      - ./var/log/nginx:/data/logs
+    ports:
+      - "80:8080"
+    depends_on:
+      setup-app:
+        condition: service_completed_successfully
+      fpm:
+        condition: service_started

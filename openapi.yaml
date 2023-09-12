@@ -1,0 +1,486 @@
+openapi: 3.0.0
+info:
+  title: 'Parking System'
+  description: 'Backend REST API for Parking System'
+  contact:
+    name: 'Jonas Marklén'
+    url: 'https://txc.se'
+    email: txc@txc.se
+  license:
+    name: Proprietary
+    url: 'https://txc.se'
+  version: '1.0'
+servers:
+  -
+    url: 'http://localhost'
+    description: 'Main server'
+paths:
+  '/login':
+    description: Operator Login Endpoint
+    post:
+      tags:
+        - auth
+      summary: 'Operator Login'
+      operationId: auth.login
+      requestBody:
+        $ref: '#/components/requestBodies/AuthenticationRequestBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/AuthResponseOK'
+        default:
+          $ref: '#/components/responses/default'
+      security: []
+  '/logout':
+    description: Operator Logout Endpoint
+    get:
+      tags:
+        - auth
+      summary: 'Operator Logout'
+      operationId: auth.login
+      responses:
+        '200':
+          $ref: '#/components/responses/ResponseOK'
+        default:
+          $ref: '#/components/responses/default'
+  '/parking/{zone}':
+    description: Parking
+    parameters:
+      -
+        $ref: '#/components/parameters/zone'
+    post:
+      tags:
+        - park
+      summary: 'Driver Pays For Parking'
+      operationId: parking.create
+      requestBody:
+        $ref: '#/components/requestBodies/ParkingRequestBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/ParkingResponseOK'
+        default:
+          $ref: '#/components/responses/default'
+      security: []
+  '/parking/validate/{license}':
+    description: Control Endpoint
+    parameters:
+      -
+        $ref: '#/components/parameters/license'
+    get:
+      tags:
+        - operator
+      summary: 'Operator Check If Vehicle Is Allowed To Park'
+      operationId: operator.check
+      responses:
+        '200':
+          $ref: '#/components/responses/ControlResponseOK'
+        default:
+          $ref: '#/components/responses/default'
+  '/ticket/{ticketId}':
+    description: Ticket Operations
+    parameters:
+      -
+        $ref: '#/components/parameters/ticketId'
+    get:
+      tags:
+        - ticket
+      summary: 'Lookup A Single Ticket'
+      operationId: ticket.show
+      responses:
+        '200':
+          $ref: '#/components/responses/TicketResponseOK'
+        default:
+          $ref: '#/components/responses/default'
+      security: []
+    patch:
+      tags:
+        - ticket
+      summary: 'Update A Single Ticket'
+      operationId: ticket.update
+      requestBody:
+        $ref: '#/components/requestBodies/TicketUpdateRequestBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/TicketUpdateResponseOK'
+        default:
+          $ref: '#/components/responses/default'
+
+components:
+  schemas:
+    ErrorPayload:
+      type: object
+      properties:
+        type:
+          description: Error Type
+          type: string
+        description:
+          description: Error Description
+          type: string
+          nullable: true
+    ActionPayload:
+      type: object
+      properties:
+        statusCode:
+          description: HTTP Status Code
+          type: integer
+    Authentication:
+      type: object
+      properties:
+        username:
+          description: Username to login with
+          type: string
+          example: test
+        password:
+          description: Password to login with
+          type: string
+          example: test
+        zone:
+          description: Zone to login to
+          type: string
+          example: A
+    PeriodEnum:
+      type: string
+      description: The period of how long you wish to park
+      example: hour
+      default: hour
+      enum:
+        -
+          hour
+        -
+          day
+    ParkingRequest:
+      type: object
+      properties:
+        license:
+          type: string
+          description: The vehicles license plate
+          example: ABC123
+        period:
+          $ref: '#/components/schemas/PeriodEnum'
+    ParkingResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            licenseplate:
+              type: string
+              description: The vehicles license plate
+              example: ABC123
+            zone:
+              type: string
+              description: The zone that the vehicle is parked in
+              example: A
+            period:
+              $ref: '#/components/schemas/PeriodEnum'
+            cost:
+              description: The cost of the parking session
+              type: number
+              format: float
+              example: 5.0
+            startedat:
+              description: The time when the parking started
+              type: string
+              format: date-time
+              example: '2023-09-12T15:46:00+02:00'
+            expiresat:
+              description: The time when the parking ends
+              type: string
+              format: date-time
+              example: '2023-09-12T16:46:00+02:00'
+            id:
+              description: Identifier
+              type: integer
+              format: int32
+              example: 123
+    SingleStringValue:
+      type: object
+      properties:
+        data:
+          description: Single string value
+          type: string
+          example: OK
+    Token:
+      type: object
+      properties:
+        expiresAt:
+          description: When the token expires
+          type: string
+          format: date-time
+        token:
+          description: The API token to use for communication
+          type: string
+    Zone:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The zone that the vehicle is parked in
+          example: A
+        rate:
+          description: The cost for to park in the zone
+          type: number
+          format: float
+          example: 5.0
+        period:
+          $ref: '#/components/schemas/PeriodEnum'
+        id:
+          description: Identifier
+          type: integer
+          format: int32
+          example: 5
+    Vehicle:
+      type: object
+      properties:
+        licenseplate:
+          type: string
+          description: The vehicles license plate
+          example: ABC123
+        id:
+          description: Identifier
+          type: integer
+          format: int32
+          example: 5
+    Ticket:
+      type: object
+      properties:
+        zone:
+          $ref: '#/components/schemas/Zone'
+        vehicle:
+          $ref: '#/components/schemas/Vehicle'
+        amount:
+          description: The amount to pay for the violation
+          type: number
+          format: float
+          example: 5.0
+        issuedat:
+          description: When the ticket was issued
+          type: string
+          format: date-time
+          example: '2023-09-12T16:46:00+02:00'
+        dueat:
+          description: When the ticket is due
+          type: string
+          format: date
+          example: '2023-10-11'
+        paidat:
+          description: When the ticket was paid
+          type: string
+          format: date-time
+          example: '2023-09-24T01:00:00+02:00'
+        status:
+          type: string
+          description: The payment status of the ticket
+          example: paid
+          default: unpaid
+          enum:
+            -
+              paid
+            -
+              unpaid
+        infraction:
+          description: Infraction description
+          type: string
+        id:
+          description: Identifier
+          type: integer
+          format: int32
+          example: 5
+    ControlResponseOK:
+      oneOf:
+        -
+          $ref: '#/components/schemas/SingleStringValue'
+        -
+          $ref: '#/components/schemas/ParkingTicketResponse'
+    ParkingTicketResponse:
+      description: Parking OK with an issued ticket
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Ticket'
+#    ParkingTicketResponse:
+#      description: Parking OK with an issued ticket
+#      type: object
+#      properties:
+#        data:
+#          allOf:
+#            -
+#              $ref: '#/components/schemas/ErrorModel'
+#            -
+#              type: object
+#              properties:
+#                rootCause:
+#                  type: string
+
+  responses:
+    AuthResponseOK:
+      description: Login OK Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              -
+                $ref: '#/components/responses/200'
+              -
+                $ref: '#/components/schemas/Token'
+    ParkingResponse:
+      description: Parking OK no ticket issued
+      content:
+        application/json:
+          schema:
+            allOf:
+              -
+                $ref: '#/components/responses/200'
+              -
+                $ref: '#/components/schemas/SingleStringValue'
+    ParkingResponseOK:
+      description: Parking OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              -
+                $ref: '#/components/responses/200'
+              -
+                $ref: '#/components/schemas/ParkingResponse'
+    ControlResponseOK:
+      description: Control Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              -
+                $ref: '#/components/responses/200'
+              -
+                $ref: '#/components/schemas/ControlResponseOK'
+    TicketResponseOK:
+      description: Control Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              -
+                $ref: '#/components/responses/200'
+              -
+                $ref: '#/components/schemas/ParkingTicketResponse'
+    ResponseOK:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              -
+                $ref: '#/components/responses/200'
+              -
+                $ref: '#/components/schemas/SingleStringValue'
+    '200':
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ActionPayload'
+    '201':
+      description: 'Entity Created'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ActionPayload'
+    '202':
+      description: Accepted
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ActionPayload'
+    '204':
+      description: 'No Content'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ActionPayload'
+    default:
+      description: 'Unexpected Error'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorPayload'
+  parameters:
+    zone:
+      name: zone
+      in: path
+      description: 'The name of the parking zone'
+      required: true
+      schema:
+        type: string
+    license:
+      name: license
+      in: path
+      description: 'The licenseplate string'
+      required: true
+      schema:
+        type: string
+    ticketId:
+      name: ticketId
+      in: path
+      description: 'The ticket identifier'
+      required: true
+      schema:
+        type: integer
+        format: int32
+  requestBodies:
+    ParkingRequestBody:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ParkingRequest'
+          examples:
+            ZoneA:
+              value: {"license:": "ABC123", "zone": "A"}
+            ZoneB:
+              value: {"license:": "ABC123", "zone": "B"}
+            ZoneC:
+              value: {"license:": "ABC123", "zone": "C"}
+            ZoneD:
+              value: {"license:": "ABC123", "zone": "D"}
+      required: true
+    TicketUpdate:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TicketUpdateRequest'
+      required: true
+    AuthenticationRequestBody:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Authentication'
+          examples:
+            ZoneA:
+              value: {"username:": "user", "password":"password", "zone": "A"}
+            ZoneB:
+              value: {"username:": "user", "password":"password", "zone": "B"}
+            ZoneC:
+              value: {"username:": "user", "password":"password", "zone": "C"}
+            ZoneD:
+              value: {"username:": "user", "password":"password", "zone": "D"}
+      required: true
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      description: 'The API Token From The Login Response'
+      name: x-api-key
+      in: header
+security:
+  -
+    apiKey: []
+tags:
+  -
+    name: auth
+    description: 'Authentication'
+  -
+    name: park
+    description: 'Parking operations'
+  -
+    name: operator
+    description: 'Operator operations'
+  -
+    name: ticket
+    description: 'Ticket operations'

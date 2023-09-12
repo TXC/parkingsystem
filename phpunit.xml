@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<phpunit
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.3/phpunit.xsd"
+        beStrictAboutChangesToGlobalState="true"
+        beStrictAboutOutputDuringTests="true"
+        colors="true"
+        bootstrap="tests/bootstrap.php"
+        cacheDirectory=".phpunit.cache"
+        displayDetailsOnTestsThatTriggerDeprecations="true"
+        displayDetailsOnTestsThatTriggerErrors="true"
+        displayDetailsOnTestsThatTriggerNotices="true"
+        displayDetailsOnTestsThatTriggerWarnings="true"
+        >
+  <testsuites>
+    <testsuite name="unit">
+      <directory>tests/unit</directory>
+    </testsuite>
+
+    <testsuite name="integration">
+      <directory>tests/integration</directory>
+    </testsuite>
+  </testsuites>
+  <coverage>
+    <report>
+      <clover outputFile="coverage.clover.xml"/>
+      <cobertura outputFile="coverage.cobertura.xml"/>
+      <html outputDirectory="coverage/" lowUpperBound="50" highLowerBound="90"/>
+      <php outputFile="coverage.php.php"/>
+    </report>
+  </coverage>
+  <php>
+    <env name="APP_ENV" value="test"/>
+    <env name="PHPUNIT_TEST_SUITE" value="1"/>
+    <env name="DATABASE_DRIVER" value="pdo_sqlite"/>
+    <env name="DATABASE_NAME" value=":memory:"/>
+  </php>
+  <source>
+    <include>
+      <directory suffix=".php">src</directory>
+    </include>
+  </source>
+</phpunit>
